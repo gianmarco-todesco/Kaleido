@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+
+<html>
+<meta charset="utf-8">
+<title>Kaleido (Test)</title>
+<style>
+canvas { border:solid 1px black; }
+</style>
+<script src="twgl-full.min.js"></script>
+<script src="fpsmeter.min.js"></script>
+<script src="test4.js"></script>
+<script id="vs" type="notjs">
+    attribute vec4 position;   
+    uniform mat4 matrix;    
+    void main() {
+      gl_Position = matrix * position;
+    }
+</script>
+<script id="fs" type="notjs">
+    precision mediump float;
+    uniform vec4 color;  
+    void main() {
+    gl_FragColor = color;
+    }
+</script>
+<script id="tx_vs" type="notjs">
+    attribute vec4 position;   
+    attribute vec2 texcoord;
+    uniform mat4 matrix;  
+    varying vec2 v_texcoord;
+    
+    void main() {
+      v_texcoord = texcoord;
+      gl_Position = matrix * position;
+    }
+</script>
+<script id="tx_fs" type="notjs">
+    precision mediump float;
+    uniform sampler2D texture;
+    varying vec2 v_texcoord;
+    
+    void main() {
+      gl_FragColor = texture2D(texture, v_texcoord);
+    }
+</script>
+<script id="tx2_vs" type="notjs">
+    attribute vec4 position;   
+    attribute vec2 texcoord;
+    varying vec2 v_texcoord;
+    varying vec2 v_pos;
+    void main() {
+      v_texcoord = texcoord;
+      gl_Position = position;
+      v_pos = position.xy;
+    }
+</script>
+<script id="tx2_fs" type="notjs">
+    precision mediump float;
+    uniform mat4 uvmatrix;  
+    varying vec2 v_pos;
+    uniform sampler2D texture;
+    
+    void main() {
+      vec2 p = (uvmatrix * vec4(v_pos,0.0,1.0)).xy;
+      gl_FragColor = texture2D(texture, p);
+      /*
+      if(0.0<p.x && p.x<1.0 && 0.0<p.y && p.y<1.0)
+        gl_FragColor = vec4(1.0,0.8,0.1,1.0);
+      else
+        gl_FragColor = vec4(1.0,0.8,0.9,1.0);
+        */
+      
+    }
+</script>
+</head>
+<body>
+<canvas id="c" width="900" height="700"></canvas>
+<script>main()</script>
+</body>
