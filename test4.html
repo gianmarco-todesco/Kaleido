@@ -62,7 +62,10 @@ canvas { border:solid 1px black; }
     
     void main() {
       vec2 p = (uvmatrix * vec4(v_pos,0.0,1.0)).xy;
-      gl_FragColor = texture2D(texture, p);
+      //if(0.0<p.x && p.x<1.0 && 0.0<p.y && p.y<1.0)
+        gl_FragColor = texture2D(texture, p);
+      //else
+      //  gl_FragColor = vec4(1.0,0.8,0.9,1.0);
       /*
       if(0.0<p.x && p.x<1.0 && 0.0<p.y && p.y<1.0)
         gl_FragColor = vec4(1.0,0.8,0.1,1.0);

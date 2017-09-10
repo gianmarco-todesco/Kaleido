@@ -3,6 +3,13 @@ var simpleProgram, textureProgram, texture2Program;
 var fbi, fbi2;
 var m4 = twgl.m4;
 
+var mirrorType = 1;
+
+function mm(mlst) {
+    var m = m4.create();
+    for(var i=0; i<mlst.length;i++) m = m4.multiply(m,mlst[i]);
+    return m;
+}
 
 function inside(point, vs) {
     // ray-casting algorithm based on
@@ -64,7 +71,10 @@ function createSquareOutlineShape(gl) {
 
 var squareShape, squareOutlineShape;
 var fboxShape;
-
+var equilateralTriangleShape;
+var equilateralTriangleOutlineShape;
+var rightTriangleShape;
+var rightTriangleOutlineShape;
 
 function createShapes(gl) {
     squareShape = createSquareShape(gl);
@@ -82,6 +92,56 @@ function createShapes(gl) {
             }, 
             texcoord: [ 0.,0., 1.,0., 0.,1., 1.,1.]
     });
+    
+    var h = Math.sqrt(3);
+    
+    equilateralTriangleShape = new Shape(gl, gl.TRIANGLES, {
+            position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0, 
+                     1.0, -1.0, 
+                     0.0, -1.0 + h, 
+                ]
+            }, 
+            texcoord: [ 0.,0., 1.,0., 0.5,h*0.5]
+    });
+    equilateralTriangleOutlineShape = new Shape(gl, gl.LINE_STRIP, {
+            position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0, 
+                     1.0, -1.0, 
+                     0.0, -1.0 + h,
+                    -1.0, -1.0,                      
+                ]
+            }, 
+    });
+
+    rightTriangleShape = new Shape(gl, gl.TRIANGLES, {
+            position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0, 
+                     1.0, -1.0, 
+                     1.0,  1.0, 
+                ]
+            }, 
+            texcoord: [ 0.,0., 1.,0., 1.0,1.0]
+    });
+    rightTriangleOutlineShape = new Shape(gl, gl.LINE_STRIP, {
+            position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0, 
+                     1.0, -1.0, 
+                     1.0,  1.0,
+                    -1.0, -1.0,                      
+                ]
+            }, 
+    });
+    
+    
 }
 
 
@@ -225,59 +285,14 @@ function main() {
     pieces.push(new SquarePiece());
     pieces.push(new SquarePiece());
     
-    
-    pieces[0].matrix = m4.multiply(m4.translation(off),m4.scaling([70,70,1]));
-    pieces[1].matrix = m4.multiply(m4.translation([200.0,0.0,0.0]),m4.scaling([70,70,1]));
-    pieces[2].matrix = m4.multiply(m4.translation([-200.0,0.0,0.0]),m4.scaling([70,70,1]));
+    var sc = 30;
+    pieces[0].matrix = m4.multiply(m4.translation(off),m4.scaling([sc,sc,1]));
+    pieces[1].matrix = m4.multiply(m4.translation([200.0,0.0,0.0]),m4.scaling([sc,sc,1]));
+    pieces[2].matrix = m4.multiply(m4.translation([-200.0,0.0,0.0]),m4.scaling([sc,sc,1]));
     
     for(var i=0;i<3;i++)
         pieces[i].matrix = m4.multiply(pieces[i].matrix, m4.rotationZ(0.2*i));
     
-
-    /*
-    star = createStar(gl);
-    box = createBox(gl);
-    fbox = createFilledBox(gl, 1.0);
-    fbox2 = createFilledBox(gl, 5.0);
-    
-    bufferInfo = twgl.createBufferInfoFromArrays(gl, {
-        position: { 
-            numComponents:2, 
-            data: [
-                0,0, 0,0.5, 0.7,0
-            ]
-        }
-    });
-    
-    bufferInfo2 = twgl.createBufferInfoFromArrays(gl, {
-        position: { 
-            numComponents:2, 
-            data: [
-                -0.9,-0.9, 
-                 0.9,-0.9,
-                -0.9, 0.9,
-                 0.9, 0.9,
-            ]
-        },
-        texcoord: [
-            0.,0., 10.,0., 0.,10., 10.,10.
-        ],
-        
-    });
-    textures = twgl.createTextures(gl, {
-        checker: {
-            mag: gl.NEAREST,
-            min: gl.LINEAR,
-            src: [
-                255,255,255,255,
-                192,192,192,255,
-                192,192,192,255,
-                255,255,255,255
-            ]
-        },
-        uff: { src: "cat.jpg" },
-    });
-    */
     
     fbi = twgl.createFramebufferInfo(gl, [
             { format: gl.RGBA, type: gl.UNSIGNED_BYTE, min: gl.LINEAR, wrap: gl.REPEAT },
@@ -316,6 +331,139 @@ off = [0,0,0];
 var viewMatrix;
 var width, height; 
  
+
+function drawSceneToFb(boxMatrix) {
+    twgl.bindFramebufferInfo(gl, fbi);
+    gl.clearColor(1.0,1.0,0.0,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    var fbiMatrix = m4.inverse(boxMatrix);
+    for(var i=0;i<3;i++) pieces[i].draw2(gl, fbiMatrix);    
+} 
+
+function drawCellToFb2() {
+    twgl.bindFramebufferInfo(gl, fbi2);
+    gl.clearColor(0.0,1.0,0.0,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    gl.useProgram(textureProgram.program);
+    twgl.setUniforms(textureProgram, { 
+        texture : fbi.attachments[0]
+    });        
+    
+    if(mirrorType == 1) {
+        // square mirror
+        fboxShape.draw(gl, textureProgram, 
+            m4.multiply(m4.translation([-0.5,-0.5,0]),m4.scaling([0.5,0.5,1])));   
+        fboxShape.draw(gl, textureProgram, 
+            m4.multiply(m4.translation([ 0.5,-0.5,0]),m4.scaling([-0.5,0.5,1])));
+        fboxShape.draw(gl, textureProgram, 
+            m4.multiply(m4.translation([-0.5, 0.5,0]),m4.scaling([0.5,-0.5,1])));
+        fboxShape.draw(gl, textureProgram, 
+            m4.multiply(m4.translation([ 0.5, 0.5,0]),m4.scaling([-0.5,-0.5,1])));
+    } else if(mirrorType == 2) {
+        // equilateral triangle mirror  
+        
+        var h = Math.sqrt(3);
+        
+        var m3a = m4.translation([0,1-h,0]);
+        var m3b = m4.multiply(m4.scaling([-1,1,1]), m3a);
+        var m1 = m4.multiply(m4.translation([ 0.0, 0.0,0]),m4.scaling([0.25,0.25,1]));
+        
+        m1 = m4.inverse([1.5,-h/2,0,0, 1.5,h/2,0,0, 0,0,1,0, 0,0,0,1]);
+        // m1 = m4.scaling([0.25,0.25,1.0]);
+        
+
+        var p = [
+            [-3,0],[0,h],[3,0],[0,-h]
+        ];
+        var tt = function(d,r) {
+            return m4.multiply(m1, 
+                m4.multiply(
+                    m4.translation([p[d][0],p[d][1],0]),
+                    m4.multiply(m4.rotationZ(Math.PI*2*r/6),(r&1)==0?m3a:m3b)
+                ));
+        }
+        
+        
+        equilateralTriangleShape.draw(gl, textureProgram, tt(0,2));
+        equilateralTriangleShape.draw(gl, textureProgram, tt(1,5));
+        equilateralTriangleShape.draw(gl, textureProgram, tt(1,0));
+        equilateralTriangleShape.draw(gl, textureProgram, tt(1,1));
+        equilateralTriangleShape.draw(gl, textureProgram, tt(2,4));
+        equilateralTriangleShape.draw(gl, textureProgram, tt(2,5));
+        equilateralTriangleShape.draw(gl, textureProgram, tt(3,2));
+        equilateralTriangleShape.draw(gl, textureProgram, tt(3,3));
+        equilateralTriangleShape.draw(gl, textureProgram, tt(3,4));
+        equilateralTriangleShape.draw(gl, textureProgram, tt(0,1));            
+    } else if(mirrorType == 3) {
+        // right triangle mirror
+        
+        var m1 = m4.scaling([0.25,0.25,1.0]);
+        var m2 = m4.translation([-1,1,0]);
+        rightTriangleShape.draw(gl, textureProgram, mm([m1,m2]));
+        rightTriangleShape.draw(gl, textureProgram, 
+            mm([m1,m4.scaling([-1,1,1]),m2]));
+        rightTriangleShape.draw(gl, textureProgram, 
+            mm([m1,m4.scaling([ 1,-1,1]),m2]));
+        rightTriangleShape.draw(gl, textureProgram, 
+            mm([m1,m4.scaling([-1,-1,1]),m2]));
+            
+    }
+
+        
+      
+    // equilateralTriangleShape.draw(gl, textureProgram, m4.translation([0,1-h,0]));
+    
+   
+    gl.useProgram(simpleProgram.program);
+    // twgl.setUniforms(simpleProgram, { color: [0.1,0.8,0.1,1.0]});
+    // squareOutlineShape.draw(gl, simpleProgram, m4.scaling([0.8,0.8,1.0]));
+
+    /*
+    twgl.setUniforms(simpleProgram, { color: [0.8,0.1,0.1,1.0]});
+    squareShape.draw(gl, simpleProgram, 
+        m4.multiply(
+            m4.translation([-0.98,0.0,0.0]),
+            m4.scaling([0.02,1.0,1.0])));
+    twgl.setUniforms(simpleProgram, { color: [0.1,0.8,0.1,1.0]});
+    squareShape.draw(gl, simpleProgram, 
+        m4.multiply(
+            m4.translation([0.0,-0.98,0.0]),
+            m4.scaling([1.0,0.02,1.0])));
+    */
+    /*
+    twgl.setUniforms(simpleProgram, { color: [0.1,0.8,0.1,1.0]});
+    squareShape.draw(gl, simpleProgram, m4.multiply(m4.translation([0.0,0.8,0.0]),m4.scaling([0.2,0.2,1.0])));
+    */
+}
+ 
+function drawMosaic(boxMatrix) {
+    gl.useProgram(texture2Program.program);      
+        
+    var mymatrix = m4.multiply(viewMatrix, boxMatrix);
+
+    if(mirrorType == 1) {
+        mymatrix = m4.translate(mymatrix,[-1,-1,0]);
+        mymatrix = m4.scale(mymatrix,[4,4,1]);        
+    }    
+    else if(mirrorType == 2) {
+        var h = Math.sqrt(3);
+        mymatrix = m4.translate(mymatrix,[-1,-1,0]);
+        mymatrix = m4.scale(mymatrix,[2,2,1]);
+        
+    }
+
+
+    
+    
+    mymatrix = m4.inverse(mymatrix);
+    twgl.setUniforms(texture2Program, { 
+        uvmatrix : mymatrix,
+        texture : fbi2.attachments[0]    
+    });
+    fboxShape.draw(gl, texture2Program, m4.identity());    
+} 
+ 
 function render(time) {
     meter.tickStart();
     twgl.resizeCanvasToDisplaySize(gl.canvas);
@@ -340,127 +488,72 @@ function render(time) {
     var boxMatrix = m4.multiply(
         m4.translation([0,200,0]),
         m4.multiply(
-            m4.rotationZ(Math.PI*72/180),
+            m4.rotationZ(0.2),
             m4.scaling([70,70,1])
             ));
             
 
     // draw to fbi -------------------
-    twgl.bindFramebufferInfo(gl, fbi);
-    gl.clearColor(1.0,1.0,0.0,1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    var fbiMatrix = m4.inverse(boxMatrix);
-    for(var i=0;i<3;i++) pieces[i].draw2(gl, fbiMatrix);
+    drawSceneToFb(boxMatrix);
 
     
     // draw to fbi2 -------------------
-    twgl.bindFramebufferInfo(gl, fbi2);
-    gl.clearColor(0.0,1.0,0.0,1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    
-    gl.useProgram(textureProgram.program);
-    twgl.setUniforms(textureProgram, { 
-        texture : fbi.attachments[0]
-    });        
-    fboxShape.draw(gl, textureProgram, 
-        m4.multiply(m4.translation([-0.5,-0.5,0]),m4.scaling([0.5,0.5,1])));
-   
-    fboxShape.draw(gl, textureProgram, 
-        m4.multiply(m4.translation([ 0.5,-0.5,0]),m4.scaling([-0.5,0.5,1])));
-    fboxShape.draw(gl, textureProgram, 
-        m4.multiply(m4.translation([-0.5, 0.5,0]),m4.scaling([0.5,-0.5,1])));
-    fboxShape.draw(gl, textureProgram, 
-        m4.multiply(m4.translation([ 0.5, 0.5,0]),m4.scaling([-0.5,-0.5,1])));
-       
+    drawCellToFb2();       
   
     // draw framebuffer  
     twgl.bindFramebufferInfo(gl);
 
     // draw bg & mosaic
-    gl.useProgram(texture2Program.program);      
         
-    var mymatrix = m4.multiply(viewMatrix, boxMatrix);
+    if(mirrorType == 1) {
+        drawMosaic(boxMatrix);
+        
+    } else if(mirrorType == 2) {
+        var h = Math.sqrt(3);
+        drawMosaic(m4.multiply(
+            boxMatrix,
+        
+            [1.5,-h/2,0,0, 1.5,h/2,0,0, 0,0,1,0, 0,-1,0,1]
+            )); 
+        
+    }
     
-    mymatrix = m4.translate(mymatrix,[-1,-1,0]);
-    mymatrix = m4.scale(mymatrix,[4,4,1]);
-    mymatrix = m4.inverse(mymatrix);
-    twgl.setUniforms(texture2Program, { 
-        uvmatrix : mymatrix,
-        texture : fbi2.attachments[0]    
-    });
-    fboxShape.draw(gl, texture2Program, m4.identity());
 
     // draw pieces
     
     for(var i=0;i<3;i++) pieces[i].draw(gl, viewMatrix);
 
-            
-/*            
-    
- 
-    
-    // draw to framwbuffer
-    
-   
-    
-    twgl.bindFramebufferInfo(gl);    
-    viewMatrix = m4.ortho(
-        -gl.canvas.width/2,
-         gl.canvas.width/2, 
-        -gl.canvas.height/2,
-         gl.canvas.height/2,
-        -1, 1);
-    
-    
-    gl.clearColor(0,0.5,0,0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    
 
-    // draw bg & mosaic
-    gl.useProgram(texture2Program.program);      
-        
-    var mymatrix = m4.multiply(viewMatrix, boxMatrix);
-    
-    mymatrix = m4.translate(mymatrix,[-1,-1,0]);
-    mymatrix = m4.scale(mymatrix,[4,4,1]);
-    mymatrix = m4.inverse(mymatrix);
-    twgl.setUniforms(texture2Program, { 
-        uvmatrix : mymatrix,
-        texture : fbi2.attachments[0]    
-    });
-    
-    var oldViewMatrix = viewMatrix
-    viewMatrix = m4.identity();
-    
-    fbox.draw(gl, texture2Program, m4.identity());
-    viewMatrix = oldViewMatrix;
-
-    // draw other pieces
-    
-    gl.useProgram(simpleProgram.program);          
-    twgl.setUniforms(simpleProgram, { color : [1,0,1,1] });
-    
-    star.draw(gl, simpleProgram, m4.scaling([100,100,1]));
-    
-    twgl.setUniforms(simpleProgram, { color : [0,1,1,1] });
-    star.draw(gl, simpleProgram, starMatrix);
-    
-    twgl.setUniforms(simpleProgram, { color : [0,0,0,1] });
-    box.draw(gl, simpleProgram, boxMatrix);
-  */
-  
-       /* 
-    gl.useProgram(textureProgram.program);
-    twgl.setUniforms(textureProgram, { 
-        texture : fbi2.attachments[0]
-    });
-        
-    fboxShape.draw(gl, textureProgram, m4.multiply(viewMatrix, boxMatrix));
-*/
+    // square outline    
     gl.useProgram(simpleProgram.program);
     twgl.setUniforms(simpleProgram, { color: [0.8,0.1,0.8,1.0]});
-    squareOutlineShape.draw(gl, simpleProgram, m4.multiply(viewMatrix, boxMatrix));
+    if(mirrorType == 1) {
+        squareOutlineShape.draw(gl, simpleProgram, m4.multiply(viewMatrix, boxMatrix));        
+    } else if(mirrorType == 2) {
+        equilateralTriangleOutlineShape.draw(gl, simpleProgram, 
+            m4.multiply(viewMatrix, boxMatrix));        
+    } else if(mirrorType == 3) {
+        rightTriangleOutlineShape.draw(gl, simpleProgram, 
+            m4.multiply(viewMatrix, boxMatrix));        
+    }
 
+    if(mirrorType == 3) {
+        // show texture
+        gl.useProgram(textureProgram.program);
+        twgl.setUniforms(textureProgram, { 
+            texture : fbi2.attachments[0]
+        });        
+        fboxShape.draw(gl, textureProgram, 
+            m4.multiply(
+                viewMatrix, 
+                m4.multiply(
+                    m4.translation([-300,-200,0]),
+                    m4.scaling([100,100,1])
+                )));
+        
+    }
+            
+    
     meter.tick();
     requestAnimationFrame(render);
 }
@@ -509,4 +602,12 @@ window.onmousemove = function(e) {
         
     }
 }
+
+document.onkeypress = function(e) {
+    console.log(e.keyCode);
+    if(e.keyCode == 49) mirrorType = 1;
+    else if(e.keyCode == 50) mirrorType = 2;
+    else if(e.keyCode == 51) mirrorType = 3;
+}
+
 
