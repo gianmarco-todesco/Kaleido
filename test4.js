@@ -1,11 +1,120 @@
 var gl;
 var simpleProgram, textureProgram, texture2Program;
-var bufferInfo, bufferInfo2;
-var textures;
 var fbi, fbi2;
 var m4 = twgl.m4;
-var viewMatrix;
 
+
+function inside(point, vs) {
+    // ray-casting algorithm based on
+    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+
+    var x = point[0], y = point[1];
+
+    var inside = false;
+    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        var xi = vs[i][0], yi = vs[i][1];
+        var xj = vs[j][0], yj = vs[j][1];
+
+        var intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+};
+
+function Shape(gl, type, data) {
+    this.type = type;
+    this.bi = twgl.createBufferInfoFromArrays(gl, data);    
+}
+
+Shape.prototype.draw = function(gl, proginfo, matrix) {
+    twgl.setBuffersAndAttributes(gl, proginfo, this.bi);
+    twgl.setUniforms(proginfo, { matrix : matrix }); 
+    twgl.drawBufferInfo(gl, this.bi, this.type); 
+}
+
+
+function createSquareShape(gl) {
+    return new Shape(gl, gl.TRIANGLE_STRIP, {
+            position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0, 
+                     1.0, -1.0, 
+                    -1.0,  1.0, 
+                     1.0,  1.0, 
+                ]
+    }});
+}
+
+function createSquareOutlineShape(gl) {
+    return new Shape(gl, gl.LINE_STRIP, {
+            position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0, 
+                     1.0, -1.0, 
+                     1.0,  1.0, 
+                    -1.0,  1.0, 
+                    -1.0, -1.0, 
+                ]
+    }});
+}
+
+
+var squareShape, squareOutlineShape;
+var fboxShape;
+
+
+function createShapes(gl) {
+    squareShape = createSquareShape(gl);
+    squareOutlineShape = createSquareOutlineShape(gl);    
+    
+    fboxShape = new Shape(gl, gl.TRIANGLE_STRIP, {
+            position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0, 
+                     1.0, -1.0, 
+                    -1.0,  1.0, 
+                     1.0,  1.0, 
+                ]
+            }, 
+            texcoord: [ 0.,0., 1.,0., 0.,1., 1.,1.]
+    });
+}
+
+
+
+function SquarePiece() {
+    this.matrix = m4.create();
+}
+
+SquarePiece.prototype.draw2 = function(gl, viewMatrix) {
+    var matrix = m4.multiply(viewMatrix, this.matrix);
+    gl.useProgram(simpleProgram.program);  
+    twgl.setUniforms(simpleProgram, { color : [0.2,0.7,0.9,1] });   
+    squareShape.draw(gl, simpleProgram, matrix);
+    twgl.setUniforms(simpleProgram, { color : [0.1,0.6,0.8,1] });   
+    squareOutlineShape.draw(gl, simpleProgram, matrix);    
+}
+
+SquarePiece.prototype.draw = function(gl, viewMatrix) {
+    var matrix = m4.multiply(viewMatrix, this.matrix);
+    gl.useProgram(simpleProgram.program);  
+    twgl.setUniforms(simpleProgram, { color : [0.2,0.2,0.5,1] });   
+    squareOutlineShape.draw(gl, simpleProgram, matrix);    
+}
+
+SquarePiece.prototype.contains = function(pos) {
+    return -1.02<pos[0] && pos[0]<1.02 && -1.02<pos[1] && pos[1]<1.02;
+}
+
+
+
+
+
+/*
 
 function createStar(gl) {
     var buffer = [0.0, 0.0];
@@ -97,6 +206,13 @@ function createFilledBox(gl, t) {
 var star, box, fbox, fbox2;
 var meter;
 
+*/
+
+
+var pieces = [];
+
+
+
 function main() {
     gl = document.getElementById("c").getContext("webgl");
     
@@ -104,7 +220,21 @@ function main() {
     textureProgram = twgl.createProgramInfo(gl, ["tx_vs", "tx_fs"]);
     texture2Program = twgl.createProgramInfo(gl, ["tx2_vs", "tx2_fs"]);
     
+    createShapes(gl);
+    pieces.push(new SquarePiece());
+    pieces.push(new SquarePiece());
+    pieces.push(new SquarePiece());
     
+    
+    pieces[0].matrix = m4.multiply(m4.translation(off),m4.scaling([70,70,1]));
+    pieces[1].matrix = m4.multiply(m4.translation([200.0,0.0,0.0]),m4.scaling([70,70,1]));
+    pieces[2].matrix = m4.multiply(m4.translation([-200.0,0.0,0.0]),m4.scaling([70,70,1]));
+    
+    for(var i=0;i<3;i++)
+        pieces[i].matrix = m4.multiply(pieces[i].matrix, m4.rotationZ(0.2*i));
+    
+
+    /*
     star = createStar(gl);
     box = createBox(gl);
     fbox = createFilledBox(gl, 1.0);
@@ -147,6 +277,7 @@ function main() {
         },
         uff: { src: "cat.jpg" },
     });
+    */
     
     fbi = twgl.createFramebufferInfo(gl, [
             { format: gl.RGBA, type: gl.UNSIGNED_BYTE, min: gl.LINEAR, wrap: gl.REPEAT },
@@ -155,6 +286,7 @@ function main() {
             { format: gl.RGBA, type: gl.UNSIGNED_BYTE, min: gl.LINEAR, wrap: gl.REPEAT },
         ], 1024,1024);
     
+    twgl.bindFramebufferInfo(gl);
     
 
     meter = new FPSMeter(null, {
@@ -181,36 +313,47 @@ function main() {
 
 off = [0,0,0];
  
+var viewMatrix;
+var width, height; 
+ 
 function render(time) {
     meter.tickStart();
     twgl.resizeCanvasToDisplaySize(gl.canvas);
+    width = gl.canvas.width;
+    height = gl.canvas.height;
+    
+    viewMatrix = m4.ortho(
+        -gl.canvas.width/2,
+         gl.canvas.width/2, 
+        -gl.canvas.height/2,
+         gl.canvas.height/2,
+        -1, 1);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clearColor(1.0,1.0,1.0,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
+
+
+    
     var starMatrix = m4.multiply(m4.translation(off),m4.scaling([70,70,1]));
+
     var boxMatrix = m4.multiply(
         m4.translation([0,200,0]),
         m4.multiply(
             m4.rotationZ(Math.PI*72/180),
             m4.scaling([70,70,1])
             ));
-    
-    
+            
+
     // draw to fbi -------------------
     twgl.bindFramebufferInfo(gl, fbi);
-    viewMatrix = m4.identity();
-    gl.useProgram(simpleProgram.program);          
-    twgl.setUniforms(simpleProgram, { color : [1,0,1,1] });    
     gl.clearColor(1.0,1.0,0.0,1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-        
-    viewMatrix = m4.inverse(boxMatrix);
-    
-    twgl.setUniforms(simpleProgram, { color : [0,1,1,1] });
-    star.draw(gl, simpleProgram, starMatrix);
+    var fbiMatrix = m4.inverse(boxMatrix);
+    for(var i=0;i<3;i++) pieces[i].draw2(gl, fbiMatrix);
+
     
     // draw to fbi2 -------------------
-
-    viewMatrix = m4.identity();
     twgl.bindFramebufferInfo(gl, fbi2);
     gl.clearColor(0.0,1.0,0.0,1);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -218,16 +361,41 @@ function render(time) {
     gl.useProgram(textureProgram.program);
     twgl.setUniforms(textureProgram, { 
         texture : fbi.attachments[0]
-    });
-        
-    fbox.draw(gl, textureProgram, 
+    });        
+    fboxShape.draw(gl, textureProgram, 
         m4.multiply(m4.translation([-0.5,-0.5,0]),m4.scaling([0.5,0.5,1])));
-    fbox.draw(gl, textureProgram, 
+   
+    fboxShape.draw(gl, textureProgram, 
         m4.multiply(m4.translation([ 0.5,-0.5,0]),m4.scaling([-0.5,0.5,1])));
-    fbox.draw(gl, textureProgram, 
+    fboxShape.draw(gl, textureProgram, 
         m4.multiply(m4.translation([-0.5, 0.5,0]),m4.scaling([0.5,-0.5,1])));
-    fbox.draw(gl, textureProgram, 
+    fboxShape.draw(gl, textureProgram, 
         m4.multiply(m4.translation([ 0.5, 0.5,0]),m4.scaling([-0.5,-0.5,1])));
+       
+  
+    // draw framebuffer  
+    twgl.bindFramebufferInfo(gl);
+
+    // draw bg & mosaic
+    gl.useProgram(texture2Program.program);      
+        
+    var mymatrix = m4.multiply(viewMatrix, boxMatrix);
+    
+    mymatrix = m4.translate(mymatrix,[-1,-1,0]);
+    mymatrix = m4.scale(mymatrix,[4,4,1]);
+    mymatrix = m4.inverse(mymatrix);
+    twgl.setUniforms(texture2Program, { 
+        uvmatrix : mymatrix,
+        texture : fbi2.attachments[0]    
+    });
+    fboxShape.draw(gl, texture2Program, m4.identity());
+
+    // draw pieces
+    
+    for(var i=0;i<3;i++) pieces[i].draw(gl, viewMatrix);
+
+            
+/*            
     
  
     
@@ -279,87 +447,38 @@ function render(time) {
     
     twgl.setUniforms(simpleProgram, { color : [0,0,0,1] });
     box.draw(gl, simpleProgram, boxMatrix);
-    
-    /*
-    gl.useProgram(programInfo.program);       
-    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-    twgl.setUniforms(programInfo, { matrix : m4.translation([0.5, 0.3, 0.0])});
-    twgl.drawBufferInfo(gl, bufferInfo); 
-    twgl.setUniforms(programInfo, { matrix : m4.translation([-0.5, 0.0, 0.0])});
-    twgl.drawBufferInfo(gl, bufferInfo); 
-    */
-
-    
-
-    // -------------------
-    
-    
-    /*
-    fbox.draw(gl, textureProgram, 
-        m4.multiply(m4.translation([ 0.5,-0.5,0]),m4.scaling([-0.5,0.5,1])));
-    */
-    
-
-    // -------------------
-    
-    
-    // twgl.bindFramebufferInfo(gl);
-        
-        
+  */
+  
+       /* 
     gl.useProgram(textureProgram.program);
     twgl.setUniforms(textureProgram, { 
         texture : fbi2.attachments[0]
     });
         
-    fbox2.draw(gl, textureProgram, 
-        m4.multiply(m4.translation([300,-200,0]),m4.scaling([140,140,1])));
-    
-    
+    fboxShape.draw(gl, textureProgram, m4.multiply(viewMatrix, boxMatrix));
+*/
+    gl.useProgram(simpleProgram.program);
+    twgl.setUniforms(simpleProgram, { color: [0.8,0.1,0.8,1.0]});
+    squareOutlineShape.draw(gl, simpleProgram, m4.multiply(viewMatrix, boxMatrix));
 
-    
-
-    
-    /*
-
-    gl.useProgram(programInfo2.program);
-    twgl.setBuffersAndAttributes(gl, programInfo2, bufferInfo2);
-    
-    twgl.setUniforms(programInfo2, { 
-        texture : fbi.attachments[0], 
-        matrix : m4.translation([0,0,0]) });
-    
-    twgl.drawBufferInfo(gl, bufferInfo2, gl.TRIANGLE_STRIP); 
-    */
-    
-    /*
-    
-     
-
-    
-    twgl.bindFramebufferInfo(gl);
-    gl.clearColor(0,0,0,0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    
-    
-    
-    
-    gl.useProgram(programInfo2.program);
-    twgl.setBuffersAndAttributes(gl, programInfo2, bufferInfo2);
-    
-    twgl.setUniforms(programInfo2, { 
-        texture : fbi.attachments[0], 
-        matrix : m4.translation([0,0,0]) });
-    
-    twgl.drawBufferInfo(gl, bufferInfo2, gl.TRIANGLE_STRIP); 
-    */
     meter.tick();
     requestAnimationFrame(render);
 }
 
+function pick(x,y) {
+    x -= width/2;
+    y = height/2 - y;
+    for(var i=pieces.length-1;i>=0;i--) {
+        
+        var matrix = m4.inverse(pieces[i].matrix);
+        var p = m4.transformPoint(matrix, [x,y,0.0]);
+        console.log(i, p[0], p[1]);
+        if(pieces[i].contains(p)) return i;
+    }
+    return -1;    
+}
 
-
-
+var picked = -1;
 var oldx, oldy, mousedown=false;
 var cur = { x:0, y:0 };
 window.onmousedown = function(e) {
@@ -367,6 +486,7 @@ window.onmousedown = function(e) {
     mousedown=true;
     cur.x = oldx;
     cur.y = oldy;    
+    picked = pick(oldx,oldy);
 }
 window.onmouseup = function(e) {
     mousedown=false;
@@ -380,6 +500,10 @@ window.onmousemove = function(e) {
         var dy = y - oldy; oldy = y;
         // console.log(dx,dy);
         
+        if(picked>=0) {
+            var piece = pieces[picked];
+            piece.matrix = m4.multiply(m4.translation([dx,-dy,0.0]), piece.matrix);
+        }
         off[0]+=dx;
         off[1]-=dy;
         
