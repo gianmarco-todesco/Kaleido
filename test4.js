@@ -3,11 +3,11 @@ var simpleProgram, textureProgram, texture2Program;
 var fbi, fbi2;
 var m4 = twgl.m4;
 
-var mirrorType = 1;
+var mirrorType = 3;
 
-function mm(mlst) {
+function mm() {
     var m = m4.create();
-    for(var i=0; i<mlst.length;i++) m = m4.multiply(m,mlst[i]);
+    for(var i=0; i<arguments.length;i++) m = m4.multiply(m,arguments[i]);
     return m;
 }
 
@@ -41,34 +41,6 @@ Shape.prototype.draw = function(gl, proginfo, matrix) {
 }
 
 
-function createSquareShape(gl) {
-    return new Shape(gl, gl.TRIANGLE_STRIP, {
-            position: { 
-                numComponents:2, 
-                data: [
-                    -1.0, -1.0, 
-                     1.0, -1.0, 
-                    -1.0,  1.0, 
-                     1.0,  1.0, 
-                ]
-    }});
-}
-
-function createSquareOutlineShape(gl) {
-    return new Shape(gl, gl.LINE_STRIP, {
-            position: { 
-                numComponents:2, 
-                data: [
-                    -1.0, -1.0, 
-                     1.0, -1.0, 
-                     1.0,  1.0, 
-                    -1.0,  1.0, 
-                    -1.0, -1.0, 
-                ]
-    }});
-}
-
-
 var squareShape, squareOutlineShape;
 var fboxShape;
 var equilateralTriangleShape;
@@ -76,9 +48,35 @@ var equilateralTriangleOutlineShape;
 var rightTriangleShape;
 var rightTriangleOutlineShape;
 
+var mirror1CellShape;
+var mirror2CellShape;
+var mirror3CellShape;
+var mirror4CellShape;
+
+
 function createShapes(gl) {
-    squareShape = createSquareShape(gl);
-    squareOutlineShape = createSquareOutlineShape(gl);    
+
+    squareShape = new Shape(gl, gl.TRIANGLE_STRIP, {
+            position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0, 
+                     1.0, -1.0, 
+                    -1.0,  1.0, 
+                     1.0,  1.0, 
+                ]
+    }});
+    squareOutlineShape = new Shape(gl, gl.LINE_STRIP, {
+            position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0, 
+                     1.0, -1.0, 
+                     1.0,  1.0, 
+                    -1.0,  1.0, 
+                    -1.0, -1.0, 
+                ]
+    }});  
     
     fboxShape = new Shape(gl, gl.TRIANGLE_STRIP, {
             position: { 
@@ -141,7 +139,116 @@ function createShapes(gl) {
             }, 
     });
     
+    h = 2.0*Math.tan(Math.PI/6);
+    rightTriangle2Shape = new Shape(gl, gl.TRIANGLES, {
+            position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0, 
+                     1.0, -1.0, 
+                     1.0, -1.0+h, 
+                ]
+            }, 
+            texcoord: [ 0.,0., 1.,0., 1.0,h*0.5]
+    });
+    rightTriangle2OutlineShape = new Shape(gl, gl.LINE_STRIP, {
+            position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0, 
+                     1.0, -1.0, 
+                     1.0, -1.0+h, 
+                    -1.0, -1.0,                      
+                ]
+            }, 
+    });
     
+    mirror1CellShape = new Shape(gl, gl.TRIANGLES, {
+        position: { 
+                numComponents:2, 
+                data: [
+                    -1.0, -1.0,   0.0, -1.0,   0.0,  0.0, 
+                    -1.0, -1.0,   0.0,  0.0,  -1.0,  0.0, 
+
+                     0.0, -1.0,   1.0, -1.0,   1.0,  0.0, 
+                     0.0, -1.0,   1.0,  0.0,   0.0,  0.0, 
+
+                    -1.0,  0.0,   0.0,  0.0,   0.0,  1.0, 
+                    -1.0,  0.0,   0.0,  1.0,  -1.0,  1.0, 
+
+                     0.0,  0.0,   1.0,  0.0,   1.0,  1.0, 
+                     0.0,  0.0,   1.0,  1.0,   0.0,  1.0, 
+                    ]
+        }, 
+        texcoord: [ 
+                0.,0.,   1.,0.,   1.,1.,
+                0.,0.,   1.,1.,   0.,1.,
+
+                1.,0.,   0.,0.,   0.,1.,
+                1.,0.,   0.,1.,   1.,1.,
+
+                0.,1.,   1.,1.,   1.,0.,
+                0.,1.,   1.,0.,   0.,0.,
+
+                1.,1.,   0.,1.,   0.,0.,
+                1.,1.,   0.,0.,   1.,0.,
+                ]
+    });
+    
+    mirror3CellShape = new Shape(gl, gl.TRIANGLES, {
+        position: { 
+                numComponents:2, 
+                data: [
+                    -1.0,  0.0,   0.0,  0.0,   0.0,  1.0,
+                     0.0,  0.0,   1.0,  0.0,   0.0,  1.0,
+                    -1.0,  0.0,   0.0, -1.0,   0.0,  0.0,
+                     0.0,  0.0,   1.0,  0.0,   0.0, -1.0,
+                    -1.0,  0.0,   0.0,  1.0,  -1.0,  1.0,
+                     0.0,  1.0,   1.0,  0.0,   1.0,  1.0,
+                    -1.0,  0.0,  -1.0, -1.0,   0.0, -1.0,
+                     0.0, -1.0,   1.0, -1.0,   1.0,  0.0,
+                    ]
+            },
+        texcoord: [ 
+                0.,0.,   1.,0.,   1.,1.,
+                1.,0.,   0.,0.,   1.,1.,
+                0.,0.,   1.,1.,   1.,0.,
+                1.,0.,   0.,0.,   1.,1.,
+                0.,0.,   1.,1.,   1.,0.,
+                1.,1.,   0.,0.,   1.,0.,
+                0.,0.,   1.,0.,   1.,1.,
+                1.,1.,   1.,0.,   0.,0.,
+            ]
+    });
+    
+    
+    function makeCellShape(pts,tr, tx, matrix) {
+        var position = [];
+        var texcoord = [];
+        for(var i=0;i<tr.length;i++) {
+            var j = tr[i];
+            var p = m4.transformPoint(matrix, [pts[j*2], pts[j*2+1], 0]);
+            position.push( p[0], p[1] );
+            j = i%3;
+            texcoord.push( tx[j*2], tx[j*2+1] );            
+        }
+        return new Shape(gl, gl.TRIANGLES, {
+            position: { numComponents:2, data: position },
+            texcoord: texcoord});
+    }
+    
+    var sqrt_3 = Math.sqrt(3);
+    
+    var m1 = m4.inverse([0.5,sqrt_3/2,0,0, -0.5,sqrt_3/2,0,0, 0,0,1,0, 0,0,0,1]);
+    
+    mirror4CellShape = makeCellShape(
+        [0,sqrt_3, -0.5,sqrt_3/2, 0.5,sqrt_3/2, 
+        0,sqrt_3/3, -1,0, 0,0, 1,0, 0,-sqrt_3/3,
+        -0.5,-sqrt_3/2, 0.5,-sqrt_3/2, 0,-sqrt_3],
+        [0,1,3, 0,2,3, 4,1,3, 4,5,3, 6,2,3, 6,5,3,
+        4,5,7, 4,8,7, 6,5,7, 6,9,7, 
+        10,8,7, 10,9,7],
+        [0,0, 1,0, 1,1.0/sqrt_3], m1);
 }
 
 
@@ -155,8 +262,10 @@ SquarePiece.prototype.draw2 = function(gl, viewMatrix) {
     gl.useProgram(simpleProgram.program);  
     twgl.setUniforms(simpleProgram, { color : [0.2,0.7,0.9,1] });   
     squareShape.draw(gl, simpleProgram, matrix);
-    twgl.setUniforms(simpleProgram, { color : [0.1,0.6,0.8,1] });   
+    /*
+    twgl.setUniforms(simpleProgram, { color : [1,1,1,1] });   
     squareOutlineShape.draw(gl, simpleProgram, matrix);    
+*/
 }
 
 SquarePiece.prototype.draw = function(gl, viewMatrix) {
@@ -170,9 +279,63 @@ SquarePiece.prototype.contains = function(pos) {
     return -1.02<pos[0] && pos[0]<1.02 && -1.02<pos[1] && pos[1]<1.02;
 }
 
+var mirror1Shape = {
+    matrix : m4.create(),
+    draw2 : function() {},
+    draw : function(gl, viewMatrix) {
+        var matrix = m4.multiply(viewMatrix, this.matrix);
+        gl.useProgram(simpleProgram.program);  
+        twgl.setUniforms(simpleProgram, { color : [0.9,0.1,0.9,1] });   
+        squareOutlineShape.draw(gl, simpleProgram, matrix); 
+    },
+    contains : function(p) {
+        return -1.02<p[0] && p[0]<1.02 && -1.02<p[1] && p[1]<1.02;
+    }
+};
 
 
+var mirror2Shape = {
+    matrix : m4.create(),
+    draw2 : function() {},
+    draw : function(gl, viewMatrix) {
+        var matrix = m4.multiply(viewMatrix, this.matrix);
+        gl.useProgram(simpleProgram.program);  
+        twgl.setUniforms(simpleProgram, { color : [0.9,0.1,0.9,1] });   
+        equilateralTriangleOutlineShape.draw(gl, simpleProgram, matrix); 
+    },
+    contains : function(p) {
+        return -1.02<p[0] && p[0]<1.02 && -1.02<p[1] && p[1]<1.02;
+    }
+};
 
+var mirror3Shape = {
+    matrix : m4.create(),
+    draw2 : function() {},
+    draw : function(gl, viewMatrix) {
+        var matrix = m4.multiply(viewMatrix, this.matrix);
+        gl.useProgram(simpleProgram.program);  
+        twgl.setUniforms(simpleProgram, { color : [0.9,0.1,0.9,1] });   
+        rightTriangleOutlineShape.draw(gl, simpleProgram, matrix); 
+    },
+    contains : function(p) {
+        return -1.02<p[0] && p[0]<1.02 && -1.02<p[1] && p[1]<1.02;
+    }
+};
+
+
+var mirror4Shape = {
+    matrix : m4.create(),
+    draw2 : function() {},
+    draw : function(gl, viewMatrix) {
+        var matrix = m4.multiply(viewMatrix, this.matrix);
+        gl.useProgram(simpleProgram.program);  
+        twgl.setUniforms(simpleProgram, { color : [0.9,0.1,0.9,1] });   
+        rightTriangle2OutlineShape.draw(gl, simpleProgram, matrix); 
+    },
+    contains : function(p) {
+        return -1.02<p[0] && p[0]<1.02 && -1.02<p[1] && p[1]<1.02;
+    }
+};
 
 /*
 
@@ -281,16 +444,18 @@ function main() {
     texture2Program = twgl.createProgramInfo(gl, ["tx2_vs", "tx2_fs"]);
     
     createShapes(gl);
+    pieces.push(mirror1Shape);
     pieces.push(new SquarePiece());
     pieces.push(new SquarePiece());
     pieces.push(new SquarePiece());
     
     var sc = 30;
-    pieces[0].matrix = m4.multiply(m4.translation(off),m4.scaling([sc,sc,1]));
-    pieces[1].matrix = m4.multiply(m4.translation([200.0,0.0,0.0]),m4.scaling([sc,sc,1]));
-    pieces[2].matrix = m4.multiply(m4.translation([-200.0,0.0,0.0]),m4.scaling([sc,sc,1]));
+    pieces[0].matrix = m4.multiply(m4.translation([0,200,0]),m4.scaling([70,70,1]));
+    pieces[1].matrix = m4.multiply(m4.translation([0.0,0.0,0.0]),m4.scaling([sc,sc,1]));
+    pieces[2].matrix = m4.multiply(m4.translation([200.0,0.0,0.0]),m4.scaling([sc,sc,1]));
+    pieces[3].matrix = m4.multiply(m4.translation([-200.0,0.0,0.0]),m4.scaling([sc,sc,1]));
     
-    for(var i=0;i<3;i++)
+    for(var i=1;i<4;i++)
         pieces[i].matrix = m4.multiply(pieces[i].matrix, m4.rotationZ(0.2*i));
     
     
@@ -337,7 +502,7 @@ function drawSceneToFb(boxMatrix) {
     gl.clearColor(1.0,1.0,0.0,1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     var fbiMatrix = m4.inverse(boxMatrix);
-    for(var i=0;i<3;i++) pieces[i].draw2(gl, fbiMatrix);    
+    for(var i=0;i<pieces.length;i++) pieces[i].draw2(gl, fbiMatrix);    
 } 
 
 function drawCellToFb2() {
@@ -352,6 +517,11 @@ function drawCellToFb2() {
     
     if(mirrorType == 1) {
         // square mirror
+        
+        mirror1CellShape.draw(gl, textureProgram, m4.identity());
+        
+        /*
+        
         fboxShape.draw(gl, textureProgram, 
             m4.multiply(m4.translation([-0.5,-0.5,0]),m4.scaling([0.5,0.5,1])));   
         fboxShape.draw(gl, textureProgram, 
@@ -360,6 +530,7 @@ function drawCellToFb2() {
             m4.multiply(m4.translation([-0.5, 0.5,0]),m4.scaling([0.5,-0.5,1])));
         fboxShape.draw(gl, textureProgram, 
             m4.multiply(m4.translation([ 0.5, 0.5,0]),m4.scaling([-0.5,-0.5,1])));
+            */
     } else if(mirrorType == 2) {
         // equilateral triangle mirror  
         
@@ -398,8 +569,12 @@ function drawCellToFb2() {
     } else if(mirrorType == 3) {
         // right triangle mirror
         
+        mirror3CellShape.draw(gl, textureProgram, m4.identity());
+        
+        /*
         var m1 = m4.scaling([0.25,0.25,1.0]);
         var m2 = m4.translation([-1,1,0]);
+        
         rightTriangleShape.draw(gl, textureProgram, mm([m1,m2]));
         rightTriangleShape.draw(gl, textureProgram, 
             mm([m1,m4.scaling([-1,1,1]),m2]));
@@ -407,8 +582,28 @@ function drawCellToFb2() {
             mm([m1,m4.scaling([ 1,-1,1]),m2]));
         rightTriangleShape.draw(gl, textureProgram, 
             mm([m1,m4.scaling([-1,-1,1]),m2]));
-            
+          */  
+   
+    
+    } else if(mirrorType == 4) {
+        // right triangle mirror
+        
+        mirror4CellShape.draw(gl, textureProgram, m4.identity());
+        
+        /*
+        var m1 = m4.scaling([0.25,0.25,1.0]);
+        var m2 = m4.translation([-1,1,0]);
+        
+        rightTriangleShape.draw(gl, textureProgram, mm([m1,m2]));
+        rightTriangleShape.draw(gl, textureProgram, 
+            mm([m1,m4.scaling([-1,1,1]),m2]));
+        rightTriangleShape.draw(gl, textureProgram, 
+            mm([m1,m4.scaling([ 1,-1,1]),m2]));
+        rightTriangleShape.draw(gl, textureProgram, 
+            mm([m1,m4.scaling([-1,-1,1]),m2]));
+          */  
     }
+
 
         
       
@@ -449,9 +644,19 @@ function drawMosaic(boxMatrix) {
     else if(mirrorType == 2) {
         var h = Math.sqrt(3);
         mymatrix = m4.translate(mymatrix,[-1,-1,0]);
-        mymatrix = m4.scale(mymatrix,[2,2,1]);
-        
+        mymatrix = m4.scale(mymatrix,[2,2,1]);        
     }
+    else if(mirrorType == 3) {
+        mymatrix = m4.translate(mymatrix,[-1,1,0]);
+        mymatrix = m4.scale(mymatrix,[4,4,1]);        
+    }
+    else if(mirrorType == 4) {
+        //mymatrix = m4.translate(mymatrix,[-1,-1,0]);
+        //mymatrix = m4.scale(mymatrix,[4,4,1]);        
+        //mymatrix = m4.translate(mymatrix,[-1,-1,0]);
+        //mymatrix = m4.scale(mymatrix,[2,2,1]);     
+    }
+    
 
 
     
@@ -462,6 +667,7 @@ function drawMosaic(boxMatrix) {
         texture : fbi2.attachments[0]    
     });
     fboxShape.draw(gl, texture2Program, m4.identity());    
+
 } 
  
 function render(time) {
@@ -491,7 +697,8 @@ function render(time) {
             m4.rotationZ(0.2),
             m4.scaling([70,70,1])
             ));
-            
+
+    boxMatrix = pieces[0].matrix;           
 
     // draw to fbi -------------------
     drawSceneToFb(boxMatrix);
@@ -504,7 +711,8 @@ function render(time) {
     twgl.bindFramebufferInfo(gl);
 
     // draw bg & mosaic
-        
+    var sqrt_3 = Math.sqrt(3);
+    
     if(mirrorType == 1) {
         drawMosaic(boxMatrix);
         
@@ -516,15 +724,30 @@ function render(time) {
             [1.5,-h/2,0,0, 1.5,h/2,0,0, 0,0,1,0, 0,-1,0,1]
             )); 
         
+    } else if(mirrorType == 3) {
+        drawMosaic(boxMatrix);
+    } else if(mirrorType == 4) {
+        drawMosaic(mm(
+            boxMatrix,
+            m4.translation([-1,-1,0]),
+            m4.scaling([2,2,1]),
+            m4.translation([1,0,0]),
+            [0.5,sqrt_3/2,0,0, -0.5,sqrt_3/2,0,0, 0,0,1,0, 0,0,0,1],
+            m4.translation([-1,-1,0]),
+            m4.scaling([2,2,1]),
+            
+            ));        
     }
     
 
     // draw pieces
     
-    for(var i=0;i<3;i++) pieces[i].draw(gl, viewMatrix);
+    for(var i=0;i<pieces.length;i++) pieces[i].draw(gl, viewMatrix);
 
 
     // square outline    
+    
+    /*
     gl.useProgram(simpleProgram.program);
     twgl.setUniforms(simpleProgram, { color: [0.8,0.1,0.8,1.0]});
     if(mirrorType == 1) {
@@ -536,8 +759,9 @@ function render(time) {
         rightTriangleOutlineShape.draw(gl, simpleProgram, 
             m4.multiply(viewMatrix, boxMatrix));        
     }
+*/
 
-    if(mirrorType == 3) {
+    if(mirrorType == 4) {
         // show texture
         gl.useProgram(textureProgram.program);
         twgl.setUniforms(textureProgram, { 
@@ -552,11 +776,66 @@ function render(time) {
                 )));
         
     }
-            
+                
     
     meter.tick();
     requestAnimationFrame(render);
 }
+
+var picked = -1;
+var oldx, oldy, mousedown=false;
+var cur = { x:0, y:0 };
+var handler = null;
+
+
+function translationHandler(piece, pos) {
+    return { 
+        piece:piece, 
+        oldpos:pos,
+        drag : function(pos) {
+            var dx = pos[0]-this.oldpos[0];
+            var dy = pos[1]-this.oldpos[1];
+            this.oldpos = pos;
+            this.piece.matrix = m4.multiply(m4.translation([dx,dy,0.0]), this.piece.matrix);
+        }
+    };
+}
+
+
+function rotoscalingHandler(piece, pos) {
+    var c = m4.transformPoint(piece.matrix, [0,0,0]);
+    var d1 = [pos[0]-c[0], pos[1]-c[1]];
+    var r1 = Math.sqrt(d1[0]*d1[0]+d1[1]*d1[1]);
+    var ir1 = 1.0/r1;
+    var e0 = [d1[0]*ir1, d1[1]*ir1];
+    var e1 = [-e0[1],e0[0]];
+        
+    return { 
+        piece:piece, 
+        oldpos:pos,
+        center:c,
+        e0:e0,
+        e1:e1,
+        r1:r1,
+        startMatrix:m4.copy(piece.matrix),
+        drag : function(pos) {
+            console.log(pos, this.center);
+            var d2 = [pos[0]-this.center[0], pos[1]-this.center[1]];
+            var r2 = Math.sqrt(d2[0]*d2[0]+d2[1]*d2[1]);
+            if(r2<5) return;
+            var scale = r2/this.r1;
+            var u = this.e0[0]*d2[0] + this.e0[1]*d2[1];
+            var v = this.e1[0]*d2[0] + this.e1[1]*d2[1];
+            var phi = Math.atan2(v,u);
+            this.piece.matrix = m4.multiply(
+                this.startMatrix,
+                m4.multiply(
+                    m4.rotationZ(phi),
+                    m4.scaling([scale,scale,1.0])));
+        }
+    };
+}
+
 
 function pick(x,y) {
     x -= width/2;
@@ -565,24 +844,42 @@ function pick(x,y) {
         
         var matrix = m4.inverse(pieces[i].matrix);
         var p = m4.transformPoint(matrix, [x,y,0.0]);
-        console.log(i, p[0], p[1]);
-        if(pieces[i].contains(p)) return i;
+        if(pieces[i].contains(p)) {
+            var q = m4.transformPoint(pieces[i].matrix, [1,1,0.0]);
+            var dx = x-q[0];
+            var dy = y-q[1];
+            if(dx*dx+dy*dy<50) 
+                return rotoscalingHandler(pieces[i], [x,y]);
+            else
+                return translationHandler(pieces[i], [x,y]);
+        }
+        /*
+        if(pieces[i].contains(p)) {
+                handle = 1;
+                console.log("wow!");
+            }
+            else handle = 0;
+            
+            return i;
+        }
+        */
+        
     }
-    return -1;    
+    return null;    
 }
 
-var picked = -1;
-var oldx, oldy, mousedown=false;
-var cur = { x:0, y:0 };
+
 window.onmousedown = function(e) {
     oldx=e.pageX-gl.canvas.offsetLeft; oldy=e.pageY-gl.canvas.offsetTop;
     mousedown=true;
     cur.x = oldx;
     cur.y = oldy;    
-    picked = pick(oldx,oldy);
+    handler = pick(oldx,oldy);
+    
 }
 window.onmouseup = function(e) {
     mousedown=false;
+    handler = null;
 }
 window.onmousemove = function(e) {
     if(mousedown) {
@@ -592,22 +889,25 @@ window.onmousemove = function(e) {
         var dx = x - oldx; oldx = x;
         var dy = y - oldy; oldy = y;
         // console.log(dx,dy);
-        
+        if(handler) handler.drag([x-width/2,height/2-y]);
+        /*
         if(picked>=0) {
             var piece = pieces[picked];
             piece.matrix = m4.multiply(m4.translation([dx,-dy,0.0]), piece.matrix);
         }
         off[0]+=dx;
         off[1]-=dy;
+        */
         
     }
 }
 
 document.onkeypress = function(e) {
     console.log(e.keyCode);
-    if(e.keyCode == 49) mirrorType = 1;
-    else if(e.keyCode == 50) mirrorType = 2;
-    else if(e.keyCode == 51) mirrorType = 3;
+    if(e.keyCode == 49) { mirrorType = 1; var matrix = pieces[0].matrix; pieces[0] = mirror1Shape; pieces[0].matrix = matrix; }
+    else if(e.keyCode == 50) { mirrorType = 2; }
+    else if(e.keyCode == 51) { mirrorType = 3;var matrix = pieces[0].matrix; pieces[0] = mirror3Shape; pieces[0].matrix = matrix;}
+    else if(e.keyCode == 52) { mirrorType = 4;var matrix = pieces[0].matrix; pieces[0] = mirror4Shape; pieces[0].matrix = matrix;}
 }
 
 
