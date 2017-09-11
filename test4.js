@@ -902,12 +902,19 @@ window.onmousemove = function(e) {
     }
 }
 
+function setMirror(i) {
+    mirrorType = i;
+    var matrix = pieces[0].matrix; 
+    pieces[0] = [mirror1Shape, mirror2Shape, mirror3Shape, mirror4Shape][mirrorType-1];
+    pieces[0].matrix = matrix;
+}
+
 document.onkeypress = function(e) {
     console.log(e.keyCode);
-    if(e.keyCode == 49) { mirrorType = 1; var matrix = pieces[0].matrix; pieces[0] = mirror1Shape; pieces[0].matrix = matrix; }
-    else if(e.keyCode == 50) { mirrorType = 2; }
-    else if(e.keyCode == 51) { mirrorType = 3;var matrix = pieces[0].matrix; pieces[0] = mirror3Shape; pieces[0].matrix = matrix;}
-    else if(e.keyCode == 52) { mirrorType = 4;var matrix = pieces[0].matrix; pieces[0] = mirror4Shape; pieces[0].matrix = matrix;}
+    if(e.keyCode == 49) { setMirror(1); }
+    else if(e.keyCode == 50) { setMirror(2); }
+    else if(e.keyCode == 51) { setMirror(3); }
+    else if(e.keyCode == 52) { setMirror(4); }
 }
 
 
